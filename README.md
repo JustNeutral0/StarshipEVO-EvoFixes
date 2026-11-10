@@ -15,6 +15,12 @@ switched off on its own in the **EvoFixes** tab of [Mod Settings](https://github
   each ship's power output and capacity are checked against the sum of its reactors, solar panels, wind turbines and
   power cells, and corrected when they stay wrong. Only the joining player needs it; it does nothing for the host
   or in single-player.
+- **Passenger warp (multiplayer).** When a ship warps, only the pilot's game loads the new system, so anyone riding
+  along is left behind in empty space. With this fix, a player standing on the ship goes to the new system with it,
+  and a player already stranded that way is brought back within a second or two. Both players need it (it works
+  whichever of you pilots). Tested on two copies on one PC; not yet with a full warp flight over Steam.
+- **Borderless alt-tab**: Borderless no longer minimizes when you click away or alt-tab. It changes a setting in the
+  game's files, so it works **from the second launch** after installing (and again after a game update).
 - **Pipe Thin** connects at its far end.
 - **Holo text**: text screens and kiosks show letters instead of squares. Needs a font file built with
   `tools/holo_atlas.py` from an older install of the game; without it this fix does nothing.
