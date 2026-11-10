@@ -44,12 +44,44 @@ namespace ExitToTitle
                     }
                     var show = On && PlayerState.IsHostOrSolo;
                     if (button.gameObject.activeSelf != show) button.gameObject.SetActive(show);
+                    if (show) MakeRoom(button as RectTransform);
                     // The menu outlives the session, and the game's click handler leaves a pressed button disabled.
                     var click = button.GetComponent<Selectable>();
                     if (click != null) click.enabled = true;
                     if (show && !logged) { logged = true; Log.Msg("Showing the Escape menu's Exit To Title button"); }
                 }
                 catch (System.Exception e) { Log.Error("Couldn't show the Exit To Title button: " + e); }
+            }
+
+            // The prefab has the button in the same spot as Exit To Desktop (the menu has no layout group), so move
+            // Exit To Desktop and anything under it down a row and make the box a row taller. Once: after that
+            // nothing shares its spot.
+            static void MakeRoom(RectTransform ours)
+            {
+                if (ours == null || ours.parent == null) return;
+                var rows = ours.parent.Cast<Transform>().OfType<RectTransform>()
+                    .Where(r => r != ours && r.gameObject.activeSelf && r.GetComponent<UITemplateButton>() != null).ToList();
+                var under = rows.FirstOrDefault(r => Mathf.Abs(r.anchoredPosition.y - ours.anchoredPosition.y) < 1f);
+                if (under == null) return;
+                var gaps = rows.Select(r => Mathf.Abs(r.anchoredPosition.y - ours.anchoredPosition.y)).Where(g => g > 1f).ToList();
+                var step = gaps.Count > 0 ? gaps.Min() : ours.rect.height + 4f;
+                GrowDown(ours.parent as RectTransform, step);
+                foreach (var row in rows)
+                    if (row.anchoredPosition.y <= ours.anchoredPosition.y + 1f)
+                        row.anchoredPosition -= new Vector2(0f, step);
+                Log.Msg($"Moved {under.name} and the rows under it down {step:F0} to make room for Exit To Title");
+            }
+
+            // One row taller at the bottom; children pinned to a point keep their place on screen (as Mod Settings
+            // does for its button).
+            static void GrowDown(RectTransform box, float step)
+            {
+                if (box == null) return;
+                var pinned = box.Cast<Transform>().OfType<RectTransform>()
+                    .Where(r => r.anchorMin.y == r.anchorMax.y).ToDictionary(r => r, r => r.position);
+                box.sizeDelta += new Vector2(0f, step);
+                box.anchoredPosition -= new Vector2(0f, step * (1f - box.pivot.y));
+                foreach (var pair in pinned) pair.Key.position = pair.Value;
             }
         }
     }

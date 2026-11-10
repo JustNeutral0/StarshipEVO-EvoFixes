@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 #if !BEPINEX
-[assembly: MelonLoader.MelonInfo(typeof(EvoFixes.Mod), "EvoFixes", "1.7.1", "Claude")]
+[assembly: MelonLoader.MelonInfo(typeof(EvoFixes.Mod), "EvoFixes", "1.7.2", "Claude")]
 [assembly: MelonLoader.MelonGame("Moonfire Entertainment", "Starship EVO")]
 [assembly: MelonLoader.MelonAdditionalDependencies("EvoCore")]
 #endif
@@ -23,7 +23,7 @@ namespace EvoFixes
     // fold-out for its own settings. The loader applies every part's Harmony patches; a part that's off returns
     // early from them.
 #if BEPINEX
-    [BepInEx.BepInPlugin("evo.evofixes", "EvoFixes", "1.7.1")]
+    [BepInEx.BepInPlugin("evo.evofixes", "EvoFixes", "1.7.2")]
     [BepInEx.BepInDependency("evo.core")]
 #endif
     public class Mod : EvoCore.EvoMod
