@@ -24,6 +24,11 @@ switched off on its own in the **EvoFixes** tab of [Mod Settings](https://github
 - **Glass panes**: touching glass blocks draw as one clear pane.
 - **Galaxy sky**: stars all around the sky, instead of half the sky empty near the top or bottom of the galaxy.
 - **Repair Dock**: a base block that repairs the ship in its shipyard for plates.
+- **Exit to title** (experimental): shows the game's own Exit To Title button in the Escape menu, which the game
+  ships switched off. Single-player and host only. If loading a save afterwards misbehaves, use Exit To Desktop.
+- **Save editor**: an **Edit saves** button on the character select screen to switch a save between Creative and
+  Survival, or rename it. A backup of the save file goes in the save's `save-editor-backups` folder before each
+  change. (Appearance and a save's mods are already in the game: load it, then Escape > Options > Player or Mods.)
 - Tools: a **Leak finder** for rooms, and a live **NPC ships** list.
 
 ## Install
