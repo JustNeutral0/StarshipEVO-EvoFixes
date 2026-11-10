@@ -1,4 +1,7 @@
+using System;
+using System.Diagnostics;
 using System.Linq;
+using System.Text;
 using HarmonyLib;
 using UI;
 using UnityEngine;
@@ -7,10 +10,12 @@ using UnityEngine.UI;
 namespace ExitToTitle
 {
     // The game's Escape menu already has an "Exit To Title" button (Canvas_MainMenu / Main Menu / Exit To Title),
-    // wired to UI_MainMenu.QuitToTitleScreen: save, release the session, stop the host, back to the title screen. The
-    // developers left it switched off in the menu prefab. This switches it back on, for single-player and the host
-    // only (a joined client's way out stays Exit To Desktop). Experimental: the developers may have hidden it for a
-    // reason, and loading another save after it hasn't been tried with every mod.
+    // wired to UI_MainMenu.QuitToTitleScreen, which the developers left switched off: it saves and stops the session,
+    // but the network manager has no offline scene, so nothing goes back to the title screen; and the game keeps world
+    // state in statics set up once at start (habitats, loading tasks, systems), so a second load in one session hangs
+    // on the loading screen (tested 2026-11-09). So this shows the button (single-player and host only) and makes it
+    // save and quit exactly like Exit To Desktop, after starting a small helper that waits for the game to close and
+    // starts it again: the title screen comes up in a fresh game.
     public static class Mod
     {
         public static readonly EvoCore.ModLog Log = EvoCore.Log.For("ExitToTitle");
@@ -20,12 +25,57 @@ namespace ExitToTitle
         public static bool On => part == null || part.On;
 
         public static void Init() =>
-            part = EvoFixes.Mod.AddPart("ExitToTitle", "Exit to title", "Shows the game's hidden Exit To Title button in the Escape menu (experimental)", DrawTab);
+            part = EvoFixes.Mod.AddPart("ExitToTitle", "Exit to title", "Shows the game's hidden Exit To Title button in the Escape menu: saves, then restarts the game to its title screen", DrawTab);
 
         static void DrawTab()
         {
-            GUILayout.Label("The button is the game's own, left switched off by the developers. It saves, then goes back to the title screen.");
-            GUILayout.Label("Single-player and host only. Experimental: if loading another save afterwards misbehaves, use Exit To Desktop.");
+            GUILayout.Label("The button is the game's own, left switched off by the developers: going back to the title inside one game session leaves the next load stuck.");
+            GUILayout.Label("So it saves and quits like Exit To Desktop, then starts the game again. Single-player and host only.");
+        }
+
+        // Starts a hidden PowerShell that waits for this game to exit, then starts the same exe with the same
+        // arguments. Encoded so paths with spaces or quotes need no escaping.
+        static bool StartRelauncher()
+        {
+            try
+            {
+                var self = Process.GetCurrentProcess();
+                var exe = self.MainModule.FileName;
+                var dir = System.IO.Path.GetDirectoryName(exe);
+                var args = Environment.GetCommandLineArgs().Skip(1).ToArray();
+                string Q(string s) => "'" + s.Replace("'", "''") + "'";
+                var argList = args.Length == 0 ? "" : " -ArgumentList @(" + string.Join(",", args.Select(Q).ToArray()) + ")";
+                var script = $"Wait-Process -Id {self.Id} -ErrorAction SilentlyContinue; Start-Process -FilePath {Q(exe)} -WorkingDirectory {Q(dir)}{argList}";
+                var encoded = Convert.ToBase64String(Encoding.Unicode.GetBytes(script));
+                var start = new ProcessStartInfo("powershell.exe", "-NoProfile -WindowStyle Hidden -EncodedCommand " + encoded)
+                {
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                };
+                // Doorstop (which loads BepInEx) marks this process DOORSTOP_INITIALIZED so child processes skip it;
+                // inherited, that mark would start the new game without mods.
+                foreach (var key in start.EnvironmentVariables.Keys.Cast<string>().Where(k => k.StartsWith("DOORSTOP", StringComparison.OrdinalIgnoreCase)).ToList())
+                    start.EnvironmentVariables.Remove(key);
+                Process.Start(start);
+                Log.Msg("Exit to title: restarting " + exe);
+                return true;
+            }
+            catch (Exception e)
+            {
+                Log.Error("Exit to title: couldn't start the game again, so nothing was done: " + e);
+                return false;
+            }
+        }
+
+        [HarmonyPatch(typeof(UI_MainMenu), nameof(UI_MainMenu.QuitToTitleScreen))]
+        static class Restart
+        {
+            static bool Prefix(UI_MainMenu __instance)
+            {
+                if (!On) return true;
+                if (StartRelauncher()) __instance.QuitApplication();
+                return false;
+            }
         }
 
         [HarmonyPatch(typeof(UI_MainMenu), nameof(UI_MainMenu.SetActive))]
@@ -50,7 +100,7 @@ namespace ExitToTitle
                     if (click != null) click.enabled = true;
                     if (show && !logged) { logged = true; Log.Msg("Showing the Escape menu's Exit To Title button"); }
                 }
-                catch (System.Exception e) { Log.Error("Couldn't show the Exit To Title button: " + e); }
+                catch (Exception e) { Log.Error("Couldn't show the Exit To Title button: " + e); }
             }
 
             // The prefab has the button in the same spot as Exit To Desktop (the menu has no layout group), so move

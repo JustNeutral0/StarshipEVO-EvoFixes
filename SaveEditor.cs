@@ -11,7 +11,7 @@ using UnityEngine;
 namespace SaveEditor
 {
     // Changes what the game only lets you pick when making a character: the game mode (Creative or Survival) and the
-    // name. An "Edit saves" button shows on the character select screen and opens a small window. Each change first
+    // name. A pencil button on each save slot (character select) opens a small window. Each change first
     // copies the save file to <name>\save-editor-backups, then writes it the way the game does (MessagePack,
     // SaveTools.WriteAtomically). Renaming moves the save folder and its <name>.mpc file; everything else in the folder
     // (the world, ships, every mod's data under mods\) goes with it. Appearance and the save's mod list are already in
@@ -30,12 +30,26 @@ namespace SaveEditor
         static PlayerSave_mp save;
 
         public static void Init() =>
-            part = EvoFixes.Mod.AddPart("SaveEditor", "Save editor", "Change a save's game mode or name from the character select screen", DrawTab);
+            part = EvoFixes.Mod.AddPart("SaveEditor", "Save editor", "Change a save's game mode or name: the pencil on each save in character select", DrawTab);
 
         static void DrawTab()
         {
-            GUILayout.Label("On the character select screen, press Edit saves (bottom right). A backup of the save file is made before each change.");
+            GUILayout.Label("On the character select screen, press the pencil next to a save (left of its trash can). A backup of the save file is made before each change.");
             GUILayout.Label("Appearance and the save's mods: load the save, then Escape > Options > Player or Mods.");
+        }
+
+        // A solid window: the stock IMGUI window is see-through, and the title logo showed through it.
+        static GUIStyle windowStyle;
+        static GUIStyle WindowStyle()
+        {
+            if (windowStyle != null) return windowStyle;
+            var back = new Texture2D(1, 1) { hideFlags = HideFlags.HideAndDontSave };
+            back.SetPixel(0, 0, new Color(0.13f, 0.14f, 0.15f, 0.98f));
+            back.Apply();
+            windowStyle = new GUIStyle(GUI.skin.window) { padding = new RectOffset(12, 12, 30, 12), fontSize = 16 };
+            windowStyle.normal.background = windowStyle.onNormal.background = back;
+            windowStyle.normal.textColor = windowStyle.onNormal.textColor = new Color(0.9f, 0.9f, 0.9f);
+            return windowStyle;
         }
 
         static bool OnSelectScreen => UI_CharacterSelection.IsActive != null && UI_CharacterSelection.IsActive.Value;
@@ -48,26 +62,61 @@ namespace SaveEditor
             GUI.skin = EvoCore.GameLook.Skin();
             try
             {
-                if (!open)
-                {
-                    if (GUI.Button(new Rect(Screen.width - 180, Screen.height - 56, 160, 36), "Edit saves")) Open();
-                }
-                else
+                if (open)
                 {
                     if (window.x == 0) window.center = new Vector2(Screen.width / 2f, Screen.height / 2f);
-                    window = GUI.Window(0x5A7E, window, DrawWindow, "Edit saves");
+                    window = GUI.Window(0x5A7E, window, DrawWindow, "Edit saves", WindowStyle());
                 }
             }
             finally { GUI.skin = oldSkin; }
         }
 
         // The character list is hidden while the window is open, so a click here can't also start a save.
-        static void Open()
+        static void Open(string name)
         {
             open = true;
             message = "";
             Refresh();
+            if (name != null && names.Contains(name)) Pick(name);
             UI_CharacterSelection.IsActive.Value = false;
+        }
+
+        // A pencil button on each save slot, left of its Delete (trash) button: a copy of Delete with the game's own
+        // "edit" icon. The date and game mode text move left by a button's width to make room.
+        [HarmonyLib.HarmonyPatch(typeof(UI_CharacterSlot), nameof(UI_CharacterSlot.Initialize))]
+        static class SlotButton
+        {
+            static Sprite pencil;
+
+            static void Postfix(UI_CharacterSlot __instance, FileInfo fileInfo)
+            {
+                if (!On || !__instance.gameObject.activeSelf || fileInfo?.Directory == null) return;
+                try { Add(__instance.transform, fileInfo.Directory.Name); }
+                catch (Exception e) { Log.Error("Couldn't add the Edit button to a save slot: " + e); }
+            }
+
+            static void Add(Transform slot, string name)
+            {
+                var delete = slot.Find("Delete") as RectTransform;
+                if (delete == null || slot.Find("Edit") != null) return;
+                var edit = (RectTransform)UnityEngine.Object.Instantiate(delete.gameObject, slot, false).transform;
+                edit.name = "Edit";
+                var step = delete.sizeDelta.x + 4f;
+                edit.anchoredPosition = delete.anchoredPosition - new Vector2(step, 0f);
+                if (pencil == null) pencil = Resources.FindObjectsOfTypeAll<Sprite>().FirstOrDefault(s => s.name == "edit");
+                var icon = edit.Find("Image")?.GetComponent<UnityEngine.UI.Image>();
+                if (icon != null && pencil != null) icon.sprite = pencil;
+                var button = edit.GetComponent<UnityEngine.UI.Button>();
+                if (button != null)
+                {
+                    // A fresh event drops the delete call copied with the button.
+                    button.onClick = new UnityEngine.UI.Button.ButtonClickedEvent();
+                    button.onClick.AddListener(() => Open(name));
+                }
+                edit.GetComponent<UITemplateButton>()?.SetTooltip("Edit save: game mode, name");
+                foreach (var label in new[] { "Mode", "Last Time" })
+                    if (slot.Find(label) is RectTransform t) t.anchoredPosition -= new Vector2(step, 0f);
+            }
         }
 
         static void Close()
