@@ -7,6 +7,24 @@ switched off on its own in the **EvoFixes** tab of [Mod Settings](https://github
 > Early test release. Built and tested against Starship EVO early-access **26w45a** (Unity 6 beta).
 > Game updates may break it until it's rebuilt. Please report problems in Issues.
 
+## Multiplayer works with mods
+
+Multiplayer was widely thought to be broken by modding, by Keel and Uplink in particular. It isn't. We played a real
+two-PC Steam game on 26w45a with Uplink, EvoCore and EvoFixes: both players flew each other around, rode along as
+passengers, built, and used blocks and switches together. The problems people ran into come from the game itself.
+They show up without mods too, and the game's own issue tracker has reports of them. Mods just passed them through.
+
+EvoFixes fixes the two big ones we found:
+
+- **Power on ships a joined player spawns** (game issue [#8031](https://github.com/tsunamayo/Starship-EVO/issues/8031)):
+  fixed by **Power recount**, confirmed in the two-PC game.
+- **Passengers left behind when a ship warps**: fixed by **Passenger warp**.
+
+Both are described below. Still broken in the game, not fixed here yet: storages and inventories aren't shared
+between players, deconstructed blocks can drop items for every player, a joined player quits to desktop (without a
+final save) when the connection drops, and a ship whose pilot disconnects mid-flight freezes until someone sits in
+it again. EvoCore's Lua Computer runs separately on each player's machine, so use it in single-player for now.
+
 ## What it fixes
 
 - **Power recount (multiplayer).** A ship spawned by a player who joined someone else's game shows too little power,
