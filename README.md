@@ -48,8 +48,10 @@ it again. EvoCore's Lua Computer runs separately on each player's machine, so us
 - **Glass panes**: touching glass blocks draw as one clear pane.
 - **Galaxy sky**: stars all around the sky, instead of half the sky empty near the top or bottom of the galaxy.
 - **Repair Dock**: a base block that repairs the ship in its shipyard for plates.
-- **Exit to title** (experimental): shows the game's own Exit To Title button in the Escape menu, which the game
-  ships switched off. Single-player and host only. If loading a save afterwards misbehaves, use Exit To Desktop.
+- **Exit to title**: shows the game's own Exit To Title button in the Escape menu, which the game ships switched
+  off. It saves, then restarts the game to its title screen with your mods loaded: the game can't load a second save
+  in one run (its own version gets stuck on the loading screen), so a fresh start is what makes it work. Single-player
+  and host only.
 - **Save editor**: an **Edit saves** button on the character select screen to switch a save between Creative and
   Survival, or rename it. A backup of the save file goes in the save's `save-editor-backups` folder before each
   change. (Appearance and a save's mods are already in the game: load it, then Escape > Options > Player or Mods.)
