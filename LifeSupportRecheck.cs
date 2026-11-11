@@ -65,4 +65,61 @@ namespace LifeSupportRecheck
             }
         }
     }
+
+    // Switching a force field off shrinks its field back to the emitter, so the gap it sealed is open (the leak
+    // finder sees the hole), but nothing tells the room's life support: it stays "stable", air and all, until
+    // something else wakes it. When a field switches, wake every life support on that ship. The field only resizes
+    // a couple of frames later, so they wake twice: half a second and two seconds after the switch.
+    public static class FieldWake
+    {
+        public static int Switches;
+        static readonly List<(ParentEntity ship, float at)> pending = new List<(ParentEntity, float)>();
+        static EvoFixes.Mod.Part part;
+
+        public static void Init() =>
+            part = EvoFixes.Mod.AddPart("ForceFieldWake", "Force field life support", "Switching a force field makes the ship's life supports check their rooms again", DrawTab);
+
+        static void DrawTab()
+        {
+            GUILayout.Label("When a force field is switched on or off, the ship's life supports re-check their rooms, so a room opened by a field going down starts leaking.");
+            GUILayout.Label($"Field switches seen this session: {Switches}");
+        }
+
+        internal static void Switched(ForceFieldCommandData field)
+        {
+            if (!part.On) return;
+            var ship = field.brickCoord.Parent;
+            if (ship == null) return;
+            var now = Time.timeSinceLevelLoad;
+            pending.Add((ship, now + 0.5f));
+            pending.Add((ship, now + 2f));
+            Switches++;
+        }
+
+        public static void Update()
+        {
+            if (pending.Count == 0) return;
+            var now = Time.timeSinceLevelLoad;
+            var datas = LifeSupportCommandData.datas;
+            for (int i = pending.Count - 1; i >= 0; i--)
+            {
+                var (ship, at) = pending[i];
+                if (now < at && now >= at - 3f) continue; // not yet (a time far ahead means a new world loaded)
+                pending.RemoveAt(i);
+                if (now < at || !datas.IsCreated) continue;
+                for (int id = 1; id < datas.LengthFast; id++)
+                    if (datas[id].brickCoord.Parent == ship) LifeSupportCommandData.ForceWakeup(id, now);
+            }
+        }
+    }
+
+    [HarmonyPatch(typeof(ForceFieldCommandData), nameof(ForceFieldCommandData.Activate))]
+    static class FieldActivate
+    {
+        static void Postfix(ForceFieldCommandData __instance)
+        {
+            try { FieldWake.Switched(__instance); }
+            catch (System.Exception e) { Mod.Log.Warning("Force field wake: " + e.Message); }
+        }
+    }
 }

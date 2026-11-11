@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 #if !BEPINEX
-[assembly: MelonLoader.MelonInfo(typeof(EvoFixes.Mod), "EvoFixes", "1.7.8", "Claude")]
+[assembly: MelonLoader.MelonInfo(typeof(EvoFixes.Mod), "EvoFixes", "1.7.9", "Claude")]
 [assembly: MelonLoader.MelonGame("Moonfire Entertainment", "Starship EVO")]
 [assembly: MelonLoader.MelonAdditionalDependencies("EvoCore")]
 #endif
@@ -23,7 +23,7 @@ namespace EvoFixes
     // fold-out for its own settings. The loader applies every part's Harmony patches; a part that's off returns
     // early from them.
 #if BEPINEX
-    [BepInEx.BepInPlugin("evo.evofixes", "EvoFixes", "1.7.8")]
+    [BepInEx.BepInPlugin("evo.evofixes", "EvoFixes", "1.7.9")]
     [BepInEx.BepInDependency("evo.core")]
 #endif
     public class Mod : EvoCore.EvoMod
@@ -66,6 +66,7 @@ namespace EvoFixes
             HoloTextFix.Mod.Init();
             GalaxyHalo.Mod.Init();
             LifeSupportRecheck.Mod.Init();
+            LifeSupportRecheck.FieldWake.Init();
             LightCruiseFix.Mod.Init();
             PowerRecount.Mod.Init();
             PassengerWarp.Mod.Init();
@@ -81,6 +82,7 @@ namespace EvoFixes
             RepairBayMod.Mod.Update();
             LightCruiseFix.Mod.Update();
             LifeSupportRecheck.Mod.Update();
+            LifeSupportRecheck.FieldWake.Update();
             PowerRecount.Mod.Update();
             PassengerWarp.Mod.Update();
             LeakFinder.Mod.Update();
