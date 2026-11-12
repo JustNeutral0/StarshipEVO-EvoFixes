@@ -43,6 +43,7 @@ it again. EvoCore's Lua Computer runs separately on each player's machine, so us
 - **Holo text**: text screens and kiosks show letters instead of squares. Needs a font file built with
   `tools/holo_atlas.py` from an older install of the game; without it this fix does nothing.
 - **Life support recheck**: a life support stuck on "leaking" checks its room again from time to time.
+- **Force field life support**: switching a force field on or off makes the ship's life supports check their rooms again, so a room opened by a field going down starts leaking instead of staying "stable".
 - **NPC avoidance**: NPC ships stop spinning in place and steer around blocks.
 - **NPC light cruise**: NPC ships don't get stuck at 0 m/s in light cruise.
 - **Glass panes**: touching glass blocks draw as one clear pane.
